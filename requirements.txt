@@ -1,0 +1,9 @@
+
+streamlit
+groq
+python-dotenv
+pymupdf
+python-docx
+pandas
+playwright
+pytest

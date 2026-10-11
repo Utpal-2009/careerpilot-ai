@@ -1,0 +1,68 @@
+
+[
+  {
+    "id": "INT001",
+    "company": "TechNova Demo",
+    "role": "Python Developer Intern",
+    "location": "Surat",
+    "work_mode": "On-site",
+    "duration_months": 6,
+    "education": ["Diploma", "BTech", "BE"],
+    "required_skills": ["Python", "SQL", "Flask", "REST APIs"],
+    "preferred_skills": ["Git", "SQLite", "JSON"],
+    "description": "Develop Python backend features and REST APIs.",
+    "apply_url": "https://example.com/python-internship"
+  },
+  {
+    "id": "INT002",
+    "company": "DataSpark Demo",
+    "role": "AI/ML Intern",
+    "location": "Ahmedabad",
+    "work_mode": "Hybrid",
+    "duration_months": 6,
+    "education": ["Diploma", "BTech", "BE"],
+    "required_skills": ["Python", "Pandas", "NumPy", "scikit-learn"],
+    "preferred_skills": ["Machine Learning", "Data Analysis", "SQL"],
+    "description": "Assist with data preparation and machine-learning experiments.",
+    "apply_url": "https://example.com/ai-internship"
+  },
+  {
+    "id": "INT003",
+    "company": "WebWorks Demo",
+    "role": "Java Developer Intern",
+    "location": "Surat",
+    "work_mode": "On-site",
+    "duration_months": 6,
+    "education": ["Diploma", "BTech", "BE"],
+    "required_skills": ["Java", "OOP", "SQL"],
+    "preferred_skills": ["Spring Boot", "REST APIs", "Git"],
+    "description": "Build and test Java backend applications.",
+    "apply_url": "https://example.com/java-internship"
+  },
+  {
+    "id": "INT004",
+    "company": "CloudBase Demo",
+    "role": "Cloud Engineering Intern",
+    "location": "Ahmedabad",
+    "work_mode": "Hybrid",
+    "duration_months": 3,
+    "education": ["BTech", "BE"],
+    "required_skills": ["Linux", "AWS", "Networking"],
+    "preferred_skills": ["Docker", "Python", "Git"],
+    "description": "Assist with cloud infrastructure and deployment tasks.",
+    "apply_url": "https://example.com/cloud-internship"
+  },
+  {
+    "id": "INT005",
+    "company": "CodeCraft Demo",
+    "role": "Frontend Developer Intern",
+    "location": "Remote",
+    "work_mode": "Remote",
+    "duration_months": 6,
+    "education": ["Diploma", "BTech", "BE"],
+    "required_skills": ["HTML", "CSS", "JavaScript"],
+    "preferred_skills": ["React", "Git", "REST APIs"],
+    "description": "Build responsive interfaces and integrate APIs.",
+    "apply_url": "https://example.com/frontend-internship"
+  }
+]
