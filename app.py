@@ -1,23 +1,35 @@
-from src.services.internship_search import search_live_internships
-
-from src.services.internship_search import search_live_internships
-
+from src.services.access_control import verify_demo_access
 
 import streamlit as st
 import pandas as pd
 import tempfile
+
 from pathlib import Path
 
-from src.services.resume_parser import analyze_resume
-from src.services.matching_service import find_matching_internships
+from src.services.resume_parser import (
+    analyze_resume,
+    extract_text,
+)
+
+from src.services.ats_checker import (
+    check_ats_compatibility,
+)
+
+from src.services.resume_refiner import (
+    refine_resume,
+    create_docx,
+)
+
+from src.services.internship_search import (
+    search_live_internships,
+)
+
 from src.services.application_service import (
     shortlist_internship,
     update_status,
     get_applications,
     remove_application,
 )
-
-
 # --------------------------------------------------
 # PAGE CONFIGURATION
 # --------------------------------------------------
@@ -28,7 +40,12 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+# --------------------------------------------------
+# DEMO ACCESS GATE
+# --------------------------------------------------
 
+if not verify_demo_access():
+    st.stop()
 st.markdown(
     """
     <style>
@@ -72,16 +89,30 @@ if "resume_name" not in st.session_state:
     st.session_state.resume_name = None
 
 
+if "resume_text" not in st.session_state:
+    st.session_state.resume_text = None
+
+if "ats_result" not in st.session_state:
+    st.session_state.ats_result = None
+
+if "refined_resume" not in st.session_state:
+    st.session_state.refined_resume = None
+
+
 # --------------------------------------------------
 # HELPERS
 # --------------------------------------------------
 
+
 def analyze_uploaded_resume(uploaded_file):
-    """Save uploaded resume temporarily and analyze it."""
+    """Extract resume text and analyze the candidate profile."""
+
     suffix = Path(uploaded_file.name).suffix.lower()
 
     if suffix not in {".pdf", ".docx"}:
-        raise ValueError("Please upload a PDF or DOCX resume.")
+        raise ValueError(
+            "Please upload a PDF or DOCX resume."
+        )
 
     with tempfile.NamedTemporaryFile(
         suffix=suffix,
@@ -91,7 +122,11 @@ def analyze_uploaded_resume(uploaded_file):
         temp_path = Path(temp_file.name)
 
     try:
-        return analyze_resume(str(temp_path))
+        resume_text = extract_text(str(temp_path))
+        profile = analyze_resume(str(temp_path))
+
+        return profile, resume_text
+
     finally:
         temp_path.unlink(missing_ok=True)
 
@@ -253,7 +288,7 @@ if page == "Dashboard":
                 with st.spinner(
                     "Analyzing your resume and searching internships..."
                 ):
-                    profile = analyze_uploaded_resume(resume_file)
+                    profile, resume_text = analyze_uploaded_resume(resume_file)
 
                     # Use the user's current search preferences.
                     profile["preferred_roles"] = [target_role]
@@ -269,7 +304,11 @@ if page == "Dashboard":
 
                 st.session_state.profile = profile
                 st.session_state.matches = matches
-                st.session_state.resume_name = resume_file.name
+                st.session_state.resume_name = resume_file.name                
+                st.session_state.resume_text = resume_text
+                st.session_state.ats_result = None
+                st.session_state.refined_resume = None
+
                 st.session_state.search_preferences = {
                     "role": target_role,
                     "locations": locations,
@@ -332,7 +371,139 @@ if page == "Dashboard":
 
         with st.expander("Raw extracted profile"):
             st.json(profile)
+        st.divider()
+        st.subheader("🧾 AI Resume Improvement Center")
 
+        st.caption(
+            "Check basic ATS compatibility and improve your resume "
+            "with AI while preserving your original information."
+        )
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            if st.button(
+                "Check ATS Compatibility",
+                key="check_ats_dashboard",
+                width="stretch",
+            ):
+                try:
+                    if not st.session_state.resume_text:
+                        st.warning("Please analyze a resume first.")
+                    else:
+                        st.session_state.ats_result = (
+                            check_ats_compatibility(
+                                st.session_state.resume_text
+                            )
+                        )
+                except Exception as error:
+                    st.error(f"ATS check failed: {error}")
+
+        with col2:
+            if st.button(
+                "✨ Refine Resume with AI",
+                key="refine_resume_dashboard",
+                type="primary",
+                width="stretch",
+            ):
+                try:
+                    if not st.session_state.resume_text:
+                        st.warning("Please analyze a resume first.")
+                    else:
+                        with st.spinner(
+                            "Groq is improving your resume..."
+                        ):
+                            st.session_state.refined_resume = (
+                                refine_resume(
+                                    st.session_state.resume_text,
+                                    st.session_state.profile or {},
+                                )
+                            )
+                except Exception as error:
+                    st.error(
+                        f"Resume refinement failed: {error}"
+                    )
+
+        # ATS results
+        ats_result = st.session_state.ats_result
+
+        if ats_result:
+            st.markdown("### ATS Compatibility Results")
+
+            metric1, metric2 = st.columns(2)
+
+            with metric1:
+                st.metric(
+                    "Basic ATS Score",
+                    f"{ats_result['score']}/100",
+                )
+
+            with metric2:
+                st.metric(
+                    "Word Count",
+                    ats_result["word_count"],
+                )
+
+            st.progress(ats_result["score"] / 100)
+
+            st.write("**Status:**", ats_result["status"])
+
+            if ats_result["issues"]:
+                st.write("**Items to review**")
+
+                for item in ats_result["issues"]:
+                    st.write(f"- {item}")
+
+            if ats_result["suggestions"]:
+                st.write("**Suggestions**")
+
+                for item in ats_result["suggestions"]:
+                    st.write(f"- {item}")
+
+            st.caption(ats_result["disclaimer"])
+
+        # Refined resume preview
+        refined = st.session_state.refined_resume
+
+        if refined:
+            st.markdown("### Refined Resume Preview")
+
+            st.markdown(
+                refined["refined_resume_markdown"]
+            )
+
+            st.download_button(
+                "⬇️ Download Refined Resume (.docx)",
+                data=create_docx(
+                    refined["refined_resume_markdown"]
+                ),
+                file_name="refined_resume.docx",
+                mime=(
+                    "application/vnd.openxmlformats-officedocument."
+                    "wordprocessingml.document"
+                ),
+                key="download_refined_resume_dashboard",
+                width="stretch",
+            )
+
+            with st.expander("View AI changes and missing information"):
+                st.write("**Changes made**")
+
+                for item in refined.get("changes", []):
+                    st.write(f"- {item}")
+
+                missing = refined.get("missing_information", [])
+
+                if missing:
+                    st.write("**Information to verify or add manually**")
+
+                    for item in missing:
+                        st.write(f"- {item}")
+
+            st.warning(
+                "Review every detail before using this resume. "
+                "Do not keep any inaccurate AI-generated statement."
+            )
 
 # --------------------------------------------------
 # INTERNSHIP EXPLORER
